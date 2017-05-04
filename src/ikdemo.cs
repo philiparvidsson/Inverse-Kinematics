@@ -36,9 +36,10 @@ public class IKBoneChain {
             var theta = (float)Math.Acos(Vector3.Dot(a, b));
             var axis  = Vector3.Cross(a, b);
 
-            mBones[i].Rot = Quaternion.Slerp(mBones[i].Rot,
-                                             Quaternion.CreateFromAxisAngle(axis, (i+1)*0.2f),
-                                             dt);
+            mBones[i].Rot = Quaternion.Slerp(
+                                mBones[i].Rot,
+                                Quaternion.CreateFromAxisAngle(axis, (i+1)*0.4f),
+                                dt);
         }
     }
 
@@ -51,7 +52,7 @@ public class IKBoneChain {
             parent = mBones[mBones.Count - 1];
         }
 
-        var bone = CreateBone(0.04f, length, color.Value);
+        var bone = CreateBone(0.06f, length, color.Value);
 
         if (parent == null) {
             bone.Pos = pos.Value;
@@ -69,9 +70,8 @@ public class IKBoneChain {
         var p = Program.Inst;
         var g = p.GraphicsDevice;
 
-        var mesh = MeshGen.Box(thickness, length, thickness)
-                       .Translate(0.5f*length*Vector3.Up)
-                       .Color(color);
+        var mesh = MeshGen.Bone(thickness, length)
+                          .Color(color);
 
         p.Scene.AddEntity(new EcsEntity(new CMesh   { Mesh = mesh.Gpu(g) },
                                         new CIKBone { Bone = bone },
@@ -178,13 +178,11 @@ public sealed class IKDemo: Scene {
 
         ikbc = ikSolver.CreateBoneChain();
 
-        ikbc.AddBone(0.1f, Color.Red, Vector3.Zero);
-        ikbc.AddBone(0.1f, Color.Green);
-        ikbc.AddBone(0.1f, Color.Blue);
-        ikbc.AddBone(0.1f, Color.Yellow);
-        ikbc.AddBone(0.1f, Color.Green);
-        ikbc.AddBone(0.1f, Color.Blue);
-        ikbc.AddBone(0.1f, Color.Yellow);
+        ikbc.AddBone(0.3f, Color.White, Vector3.Zero);
+        for (var i = 0; i < 2; i++) {
+            ikbc.AddBone(0.3f, Color.Black);
+            ikbc.AddBone(0.3f, Color.White);
+        }
 
         ikbc.Target = new Vector3(-0.2f, 0.0f, 0.5f);
 
@@ -201,7 +199,11 @@ public sealed class IKDemo: Scene {
     public override void Draw(float t, float dt) {
         var mouse = Mouse.GetState();
 
-        ikbc.Target = new Vector3(mouse.X, 0.0f, mouse.Y)*0.01f;
+        var z = 0.0f;
+        if (mouse.LeftButton == ButtonState.Pressed) {
+            z = mouse.Y - 300;
+        }
+        ikbc.Target += new Vector3(mouse.X-400, z, mouse.Y-300)*0.00003f;
         cp.Pos = ikbc.Target;
 
         base.Draw(t, dt);

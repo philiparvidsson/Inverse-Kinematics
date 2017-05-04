@@ -22,6 +22,39 @@ public static class MeshGen {
         return new Mesh(verts.ToArray(), indices.ToArray());
     }
 
+    public static Mesh Bone(float thickness, float length, float ratio=0.15f) {
+        var t = 0.5f*thickness;
+        var l = length;
+        var r = ratio*l;
+
+        var verts = new List<VertexPositionColorNormal>();
+        var indices = new List<int>();
+
+        Action<Vector3, Vector3, Vector3> tri =
+            (p0, p1, p2) => {
+                var n = Vector3.Cross(p1 - p0, p2 - p1);
+                verts.Add(new VertexPositionColorNormal { Position = p0, Normal = n });
+                verts.Add(new VertexPositionColorNormal { Position = p1, Normal = n });
+                verts.Add(new VertexPositionColorNormal { Position = p2, Normal = n });
+                indices.Add(indices.Count);
+                indices.Add(indices.Count);
+                indices.Add(indices.Count);
+            };
+
+        tri(Vector3.Zero, new Vector3(-t, r,  t), new Vector3( t, r,  t));
+        tri(Vector3.Zero, new Vector3( t, r,  t), new Vector3( t, r, -t));
+        tri(Vector3.Zero, new Vector3( t, r, -t), new Vector3(-t, r, -t));
+        tri(Vector3.Zero, new Vector3(-t, r, -t), new Vector3(-t, r,  t));
+
+        var p = l*Vector3.Up;
+        tri(p, new Vector3( t, r,  t), new Vector3(-t, r,  t));
+        tri(p, new Vector3( t, r, -t), new Vector3( t, r,  t));
+        tri(p, new Vector3(-t, r, -t), new Vector3( t, r, -t));
+        tri(p, new Vector3(-t, r,  t), new Vector3(-t, r, -t));
+
+        return new Mesh(verts.ToArray(), indices.ToArray());
+    }
+
     public static Mesh Disc(float radius, float height, int numSegments=8, bool flipNormals=false) {
         var h = 0.5f*height;
         var r = radius;
