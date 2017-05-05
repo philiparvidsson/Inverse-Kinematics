@@ -146,7 +146,7 @@ public class IKBoneChain {
         var p = Program.Inst;
         var g = p.GraphicsDevice;
 
-        var mesh = MeshGen.Box(thickness, length, thickness)
+        var mesh = MeshGen.Disc(thickness, length+0.05f)
                           .Translate(0.5f*length*Vector3.Up)
                           .Color(color);
 
@@ -281,25 +281,34 @@ public sealed class IKDemo: Scene {
     CPos cp;
     CVel cv;
 
-    private void CreateIKChain(IKSolver ikSolver, Quaternion rot) {
+    private void CreateIKChain(IKSolver ikSolver, Quaternion rot, float scale, Vector3 pos) {
         ikbc = ikSolver.CreateBoneChain();
 
-        var t = 0.2f;
-        ikbc.AddBone(0.3f, Color.Yellow, new Vector3(0.0f, 0.5f, 0.0f), t);
+        var t = 0.15f;
+        ikbc.AddBone(0.2f*scale, Color.Gray, new Vector3(0.0f, 0.5f, 0.0f) + pos, t);
         for (var i = 0; i < 2; i++) {
             t *= 0.8f;
-            ikbc.AddBone(0.3f, Color.Yellow, null, t);
+            ikbc.AddBone(0.3f*scale, Color.Gray, null, t);
             t *= 0.8f;
-            ikbc.AddBone(0.3f, Color.Yellow, null, t);
+            ikbc.AddBone(0.3f*scale, Color.Gray, null, t);
 
         }
 
-        ikbc.AddBone(0.3f, new Color(0.0f, 0.0f, 1.0f));
+        t *= 0.8f;
+        ikbc.AddBone(0.3f*scale, Color.Red, null, t);
 
         ikbc.mBones[0].BaseRot = rot;
 
-        ikbc.DropPos1 = new Vector3(-0.9f, 1.1f, 0.8f);
-        ikbc.DropPos2 = new Vector3( 0.9f, 1.1f, 0.8f);
+        ikbc.DropPos1 = new Vector3(-0.6f, 1.1f, 0.8f);
+        ikbc.DropPos2 = new Vector3( 0.6f, 1.1f, 0.8f);
+
+        var g = Program.Inst.GraphicsDevice;
+
+        var stoolColor     = Color.Red;
+        var stoolTransform = Matrix.CreateScale(0.5f*Vector3.One) * Matrix.CreateTranslation(0.25f*Vector3.Up + pos);
+        var stoolMesh      = MeshGen.Disc(0.4f, 1.0f).FlipNormals().Transform(stoolTransform).Color(stoolColor);
+        AddEntity(new EcsEntity(new CAabb { Aabb = stoolMesh.Aabb() },
+                                new CMesh { Mesh = stoolMesh.Gpu(g) }));
     }
 
     public override void Init() {
@@ -313,16 +322,18 @@ public sealed class IKDemo: Scene {
 
         base.Init();
 
-        CreateIKChain(ikSolver, Quaternion.Identity);
-        CreateIKChain(ikSolver, Quaternion.CreateFromAxisAngle(Vector3.Backward, MathHelper.ToRadians(30.0f)));
-        CreateIKChain(ikSolver, Quaternion.CreateFromAxisAngle(Vector3.Backward, MathHelper.ToRadians(-30.0f)));
+        CreateIKChain(ikSolver, Quaternion.Identity, 1.0f, new Vector3(0.0f, 0.0f, 0.0f));
+        //CreateIKChain(ikSolver, Quaternion.CreateFromAxisAngle(Vector3.Backward, MathHelper.ToRadians(0.0f)), 1.0f, new Vector3(-0.6f, 0.0f, 0.0f));
+        //CreateIKChain(ikSolver, Quaternion.CreateFromAxisAngle(Vector3.Backward, MathHelper.ToRadians(-0.0f)), 1.0f, new Vector3(0.6f, 0.0f, 0.0f));
 
         InitScene(Vector3.Zero);
 
-        world.Bounds = new BoundingBox(-5.0f*new Vector3(1.0f, 0.0f, 1.0f), 5.0f*Vector3.One);
+        world.Bounds = new BoundingBox(-3.5f*new Vector3(1.0f, 0.0f, 1.0f), 3.5f*Vector3.One);
     }
 
     int mNumSpawns = 0;
+
+
     public override void Draw(float t, float dt) {
         mSpawnTimer -= dt;
         if (mNumSpawns < 5*15 && mSpawnTimer < 0.0f) {
@@ -332,6 +343,7 @@ public sealed class IKDemo: Scene {
         }
 
         base.Draw(t, dt);
+
     }
 
 
@@ -343,37 +355,37 @@ public sealed class IKDemo: Scene {
         var height = 0.1f;
         var thickness = 0.1f;
         var pos = new Vector3(2.0f, 0.5f, -1.0f);
-        var color = new Color(0.2f, 0.2f, 0.2f);
+        var color = new Color(0.02f, 0.02f, 0.02f);
 
         var box1Transform = Matrix.CreateScale(new Vector3(length, height, thickness))
                           * Matrix.CreateTranslation(pos + 0.5f*width*Vector3.Backward + 0.5f*height*Vector3.Up);
         var box1Mesh      = MeshGen.Box().Transform(box1Transform).Color(color);
         AddEntity(new EcsEntity(new CAabb   { Aabb = box1Mesh.Aabb() },
-                                new CMesh   { Mesh = box1Mesh.Gpu(g) }));
+                                new CMesh   { Mesh = box1Mesh.Gpu(g) }, new CShadow()));
 
         var box2Transform = Matrix.CreateScale(new Vector3(thickness, height, width))
                           * Matrix.CreateTranslation(pos + 0.5f*length*Vector3.Right + 0.5f*height*Vector3.Up);
         var box2Mesh      = MeshGen.Box().Transform(box2Transform).Color(color);
         AddEntity(new EcsEntity(new CAabb { Aabb = box2Mesh.Aabb() },
-                                new CMesh { Mesh = box2Mesh.Gpu(g) } ));
+                                new CMesh { Mesh = box2Mesh.Gpu(g) }, new CShadow() ));
 
         var box3Transform = Matrix.CreateScale(new Vector3(length, height, thickness))
                           * Matrix.CreateTranslation(pos + 0.5f*width*Vector3.Forward + 0.5f*height*Vector3.Up);
         var box3Mesh      = MeshGen.Box().Transform(box3Transform).Color(color);
          AddEntity(new EcsEntity(new CAabb { Aabb = box3Mesh.Aabb() },
-                                 new CMesh { Mesh = box3Mesh.Gpu(g) } ));
+                                 new CMesh { Mesh = box3Mesh.Gpu(g) }, new CShadow() ));
 
         var box4Transform = Matrix.CreateScale(new Vector3(thickness, height, width))
                           * Matrix.CreateTranslation(pos + 0.5f*length*Vector3.Left + 0.5f*height*Vector3.Up);
         var box4Mesh      = MeshGen.Box().Transform(box4Transform).Color(color);
         AddEntity(new EcsEntity(new CAabb { Aabb = box4Mesh.Aabb() },
-                                new CMesh { Mesh = box4Mesh.Gpu(g) } ));
+                                new CMesh { Mesh = box4Mesh.Gpu(g) }, new CShadow() ));
 
-        var box5Transform = Matrix.CreateScale(new Vector3(length, pos.Y, width))
-                          * Matrix.CreateTranslation(pos + (-0.5f*pos.Y + 0.01f)*Vector3.Up);
+        var box5Transform = Matrix.CreateScale(new Vector3(length, thickness, width))
+                          * Matrix.CreateTranslation(pos + (-0.5f*height + 0.01f)*Vector3.Up);
         var box5Mesh      = MeshGen.Box().Transform(box5Transform).Color(color);
         AddEntity(new EcsEntity(new CAabb { Aabb = box5Mesh.Aabb() },
-                                new CMesh { Mesh = box5Mesh.Gpu(g) } ));
+                                new CMesh { Mesh = box5Mesh.Gpu(g) }, new CShadow() ));
     }
 
 
@@ -388,70 +400,113 @@ public sealed class IKDemo: Scene {
                           * Matrix.CreateTranslation(pos + 0.5f*size*Vector3.Backward + 0.5f*height*Vector3.Up);
         var box1Mesh      = MeshGen.Box().Transform(box1Transform).Color(color);
         AddEntity(new EcsEntity(new CAabb   { Aabb = box1Mesh.Aabb() },
-                                new CMesh   { Mesh = box1Mesh.Gpu(g) }));
+                                new CMesh   { Mesh = box1Mesh.Gpu(g) }, new CShadow()));
 
         var box2Transform = Matrix.CreateScale(new Vector3(thickness, height, size))
                           * Matrix.CreateTranslation(pos + 0.5f*size*Vector3.Right + 0.5f*height*Vector3.Up);
         var box2Mesh      = MeshGen.Box().Transform(box2Transform).Color(color);
         AddEntity(new EcsEntity(new CAabb { Aabb = box2Mesh.Aabb() },
-                                new CMesh { Mesh = box2Mesh.Gpu(g) } ));
+                                new CMesh { Mesh = box2Mesh.Gpu(g) }, new CShadow() ));
 
         var box3Transform = Matrix.CreateScale(new Vector3(size, height, thickness))
                           * Matrix.CreateTranslation(pos + 0.5f*size*Vector3.Forward + 0.5f*height*Vector3.Up);
         var box3Mesh      = MeshGen.Box().Transform(box3Transform).Color(color);
         AddEntity(new EcsEntity(new CAabb { Aabb = box3Mesh.Aabb() },
-                                new CMesh { Mesh = box3Mesh.Gpu(g) } ));
+                                new CMesh { Mesh = box3Mesh.Gpu(g) }, new CShadow() ));
 
         var box4Transform = Matrix.CreateScale(new Vector3(thickness, height, size))
                           * Matrix.CreateTranslation(pos + 0.5f*size*Vector3.Left + 0.5f*height*Vector3.Up);
         var box4Mesh      = MeshGen.Box().Transform(box4Transform).Color(color);
         AddEntity(new EcsEntity(new CAabb { Aabb = box4Mesh.Aabb() },
-                                new CMesh { Mesh = box4Mesh.Gpu(g) } ));
+                                new CMesh { Mesh = box4Mesh.Gpu(g) }, new CShadow() ));
 
         var box5Transform = Matrix.CreateScale(new Vector3(size, thickness, size))
                           * Matrix.CreateTranslation(pos + (-0.5f*thickness + 0.01f)*Vector3.Up);
         var box5Mesh      = MeshGen.Box().Transform(box5Transform).Color(color);
         AddEntity(new EcsEntity(new CAabb { Aabb = box5Mesh.Aabb() },
-                                new CMesh { Mesh = box5Mesh.Gpu(g) } ));
+                                new CMesh { Mesh = box5Mesh.Gpu(g) }, new CShadow() { Y = 0.005f } ));
     }
 
     private void InitScene(Vector3 containerPos) {
         var g = Program.Inst.GraphicsDevice;
 
-        var roomSize = 10.0f;
+        var roomSize = 7.0f;
 
-        var floorColor     = Color.DarkGray;
+        var floorColor     = new Color(0.1f, 0.2f, 0.9f);
         var floorTransform = Matrix.CreateRotationX(MathHelper.ToRadians(-90.0f))
                            * Matrix.CreateScale(roomSize*Vector3.One);
         var floorMesh      = MeshGen.Quad().Transform(floorTransform).Color(floorColor);
         AddEntity(new EcsEntity(new CMesh { Mesh = floorMesh.Gpu(g) }));
 
-        var roomColor     = Color.White;
-        var roomTransform = Matrix.CreateScale(10.0f*Vector3.One);
-        var roomMesh      = MeshGen.Box().FlipNormals().Transform(roomTransform).Color(roomColor);
+        var roomColor     = new Color(1.0f, 1.0f, 1.0f);
+        var roomTransform = Matrix.CreateScale(roomSize*Vector3.One);
+        var roomMesh      = MeshGen.Box().FlipTris().Transform(roomTransform).Color(roomColor);
         AddEntity(new EcsEntity(new CMesh { Mesh = roomMesh.Gpu(g) }));
 
-        var stoolColor     = Color.Blue;
-        var stoolTransform = Matrix.CreateScale(0.5f*Vector3.One) * Matrix.CreateTranslation(0.25f*Vector3.Up);
-        var stoolMesh      = MeshGen.Box(0.6f, 1.0f, 0.6f).FlipNormals().Transform(stoolTransform).Color(stoolColor);
-        AddEntity(new EcsEntity(new CAabb { Aabb = stoolMesh.Aabb() },
-                                new CMesh { Mesh = stoolMesh.Gpu(g) }));
+        AddEntity(
+            new EcsEntity(
+                new CMesh {
+                    Mesh = MeshGen.Quad(roomSize, 1.2f)
+                                  .Color(new Color(0.3f, 0.3f, 0.3f))
+                                  .Transform(
+                                      Matrix.CreateRotationY(MathHelper.ToRadians(90.0f))
+                                    * Matrix.CreateTranslation(new Vector3(-0.5f*roomSize+0.01f, 1.8f, 0.0f)))
+                                  .Gpu(g)
+                }
+            )
+        );
 
-        CreateContainer(new Vector3(-0.9f, 0.0f, 1.0f), Color.Red);
-        CreateContainer(new Vector3( 0.9f, 0.0f, 1.0f), Color.White);
+        AddEntity(
+            new EcsEntity(
+                new CMesh {
+                    Mesh = MeshGen.Quad(roomSize, 1.2f)
+                                  .Color(new Color(0.3f, 0.3f, 0.3f))
+                                  .Transform(
+                                      Matrix.CreateRotationY(MathHelper.ToRadians(-90.0f))
+                                    * Matrix.CreateTranslation(new Vector3(0.5f*roomSize-0.01f, 1.8f, 0.0f)))
+                                  .Gpu(g)
+                }
+            )
+        );
+
+        AddEntity(
+            new EcsEntity(
+                new CMesh {
+                    Mesh = MeshGen.Quad(roomSize, 1.2f)
+                                  .Color(new Color(0.3f, 0.3f, 0.3f))
+                                  .Transform(Matrix.CreateTranslation(new Vector3(0.0f, 1.8f, -0.5f*roomSize+0.01f)))
+                                  .Gpu(g)
+                }
+            )
+        );
+
+        AddEntity(
+            new EcsEntity(
+                new CMesh {
+                    Mesh = MeshGen.Quad(roomSize, 1.2f)
+                                  .Color(new Color(0.3f, 0.3f, 0.3f))
+                                  .Transform(Matrix.CreateTranslation(new Vector3(0.0f, 1.8f, 0.5f*roomSize-0.01f)))
+                                  .Gpu(g)
+                }
+            )
+        );
+
+
+        CreateContainer(new Vector3(-0.6f, 0.0f, 1.0f), new Color(0.2f, 0.6f, 1.0f));
+        CreateContainer(new Vector3( 0.6f, 0.0f, 1.0f), Color.OrangeRed);
         CreateConveyor();
     }
 
     private static GpuMesh[] sBallMeshes;
     private static BoundingBox sBallAabb;
-    private float mSpawnTimer;
+    private float mSpawnTimer = 5.0f;
 
     private void SpawnBall() {
         if (sBallMeshes == null) {
 
             var cols = new [] {
-                new Color(1.0f, 0.0f, 0.0f),
-                new Color(1.0f, 1.0f, 1.0f),
+                new Color(0.2f, 0.6f, 1.0f),
+                Color.OrangeRed,
             };
 
             var ballMeshes = new List<GpuMesh>();

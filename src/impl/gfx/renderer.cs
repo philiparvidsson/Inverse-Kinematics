@@ -6,24 +6,31 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
 public sealed class Renderer: EcsSystem {
-    public BasicEffect DefEffect { get; set; }
+    public Effect DefEffect { get; set; }
+
+    private RenderTarget2D mShadowMap;
+
+    private SpriteBatch mSB;
 
     public Camera Cam { get; set; } = new Camera();
 
     public override void Init() {
-        Program.Inst.GraphicsDevice.RasterizerState = new RasterizerState {
+        /*Program.Inst.GraphicsDevice.RasterizerState = new RasterizerState {
             CullMode = CullMode.None
-        };
+        };*/
 
-        DefEffect = new BasicEffect(Program.Inst.GraphicsDevice);
-
-        DefEffect.VertexColorEnabled = true;
-        DefEffect.EnableDefaultLighting();
-
-        Cam.Proj = Matrix.CreatePerspectiveFieldOfView(fieldOfView       : MathHelper.ToRadians(60.0f),
+        Cam.Proj = Matrix.CreatePerspectiveFieldOfView(fieldOfView       : MathHelper.ToRadians(80.0f),
                                                        aspectRatio       : Program.Inst.GraphicsDevice.Viewport.AspectRatio,
                                                        nearPlaneDistance : 0.1f,
                                                        farPlaneDistance  : 100.0f);
+
+        Cam.Pos = new Vector3(0.9f, 1.6f, 2.2f);
+        Cam.Target = new Vector3(0.0f, 0.6f, 0.3f);
+
+
+        mShadowMap = new RenderTarget2D(Program.Inst.GraphicsDevice, Program.Inst.GfxDevMgr.PreferredBackBufferWidth, Program.Inst.GfxDevMgr.PreferredBackBufferHeight);
+
+        mSB = new SpriteBatch(Program.Inst.GraphicsDevice);
     }
 
     public override void Draw(float t, float dt) {
@@ -33,9 +40,16 @@ public sealed class Renderer: EcsSystem {
         var p = Program.Inst;
         var g = p.GraphicsDevice;
 
+        g.BlendState = BlendState.AlphaBlend;
+
         g.Clear(Color.CornflowerBlue);
 
-        DefEffect.View = Matrix.CreateLookAt(new Vector3(0.9f, 1.6f, 2.2f), new Vector3(0.0f, 0.0f, 0.3f), Vector3.Up);
+        var w = Program.Inst.GfxDevMgr.PreferredBackBufferWidth;
+        var h = Program.Inst.GfxDevMgr.PreferredBackBufferHeight;
+
+        DefEffect = Program.Inst.Content.Load<Effect>("adsmat");
+        DefEffect.Parameters["Proj"].SetValue(Cam.Proj);
+        DefEffect.Parameters["View"].SetValue(Matrix.CreateLookAt(Cam.Pos, Cam.Target, Vector3.Up));
 
         foreach (var e in p.Scene.GetEntities<CMesh>()) {
             var mesh = e.GetComponent<CMesh>();
@@ -43,20 +57,19 @@ public sealed class Renderer: EcsSystem {
             g.SetVertexBuffer(mesh.Mesh.Vbo);
             g.Indices = mesh.Mesh.Ibo;
 
-            DefEffect.DiffuseColor = Vector3.One;
-            DefEffect.SpecularColor = Vector3.One * 0.3f;
-            DefEffect.World = Matrix.Identity;
-            DefEffect.Projection = Cam.Proj;
+            var model = Matrix.Identity;
 
             var rot = e.GetComponent<CRot>();
             if (rot != null) {
-                DefEffect.World *= Matrix.CreateFromQuaternion(rot.Rot);
+                model *= Matrix.CreateFromQuaternion(rot.Rot);
             }
 
             var pos = e.GetComponent<CPos>();
             if (pos != null) {
-                DefEffect.World *= Matrix.CreateTranslation(pos.Pos);
+                model *= Matrix.CreateTranslation(pos.Pos);
             }
+
+            DefEffect.Parameters["Model"].SetValue(model);
 
             foreach (var pass in DefEffect.CurrentTechnique.Passes) {
                 pass.Apply();
@@ -68,31 +81,39 @@ public sealed class Renderer: EcsSystem {
                                     primitiveCount : mesh.Mesh.Ibo.IndexCount / 3);
         }
 
+        DefEffect = Program.Inst.Content.Load<Effect>("shadowmat");
+        DefEffect.Parameters["Proj"].SetValue(Cam.Proj);
+        DefEffect.Parameters["View"].SetValue(Matrix.CreateLookAt(Cam.Pos, Cam.Target, Vector3.Up));
+
         foreach (var e in p.Scene.GetEntities<CMesh>()) {
             var mesh = e.GetComponent<CMesh>();
             if (!e.HasComponent<CShadow>()) {
                 continue;
             }
 
+            var shadow = e.GetComponent<CShadow>();
+
             g.SetVertexBuffer(mesh.Mesh.Vbo);
             g.Indices = mesh.Mesh.Ibo;
 
-            DefEffect.DiffuseColor = Vector3.Zero;
-            DefEffect.World = Matrix.Identity;
-            DefEffect.Projection = Cam.Proj;
+            var model = Matrix.Identity;
 
             var rot = e.GetComponent<CRot>();
             if (rot != null) {
-                DefEffect.World *= Matrix.CreateFromQuaternion(rot.Rot);
+                model *= Matrix.CreateFromQuaternion(rot.Rot);
             }
+
+            model *= Matrix.CreateScale(new Vector3(1.1f, 0.0f, 1.1f));
 
             var pos = e.GetComponent<CPos>();
             if (pos != null) {
-                DefEffect.World *= Matrix.CreateTranslation(pos.Pos);
+                model *= Matrix.CreateTranslation(pos.Pos);
             }
 
-            DefEffect.World *= Matrix.CreateScale(new Vector3(1.0f, 0.0f, 1.0f))
-                             * Matrix.CreateTranslation(0.0f, 0.02f, 0.0f);
+            model *= Matrix.CreateScale(new Vector3(1.0f, 0.0f, 1.0f))
+                   * Matrix.CreateTranslation(0.0f, shadow.Y, 0.0f);
+
+            DefEffect.Parameters["Model"].SetValue(model);
 
             foreach (var pass in DefEffect.CurrentTechnique.Passes) {
                 pass.Apply();
@@ -104,6 +125,7 @@ public sealed class Renderer: EcsSystem {
                                     startIndex     : 0,
                                     primitiveCount : mesh.Mesh.Ibo.IndexCount / 3);
         }
+
     }
 
 }

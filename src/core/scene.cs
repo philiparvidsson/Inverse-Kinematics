@@ -47,8 +47,10 @@ public abstract class Scene {
     }
 
     public virtual void Update(float t, float dt) {
-        foreach (var system in mSystems) {
-            system.Update(t, dt);
+        for (var i = 0; i < 2; i++) {
+            foreach (var system in mSystems) {
+                system.Update(t, dt*0.5f);
+            }
         }
     }
 

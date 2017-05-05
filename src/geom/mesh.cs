@@ -38,6 +38,18 @@ public sealed class Mesh {
         return GpuMesh.FromMesh(gfxDevice, this);
     }
 
+    public Mesh FlipTris() {
+        FlipNormals();
+
+        for (var i = 0; i < Indices.Length; i += 3) {
+            var t = Indices[i+1];
+            Indices[i+1] = Indices[i+2];
+            Indices[i+2] = t;
+        }
+
+        return this;
+    }
+
     public Mesh FlipNormals() {
         for (var i = 0; i < Verts.Length; i++) {
             Verts[i].Normal *= -1.0f;
@@ -57,6 +69,8 @@ public sealed class Mesh {
     public Mesh Transform(Matrix m) {
         for (var i = 0; i < Verts.Length; i++) {
             Verts[i].Position = Vector3.Transform(Verts[i].Position, m);
+            var n = Vector4.Transform(new Vector4(Verts[i].Normal, 0.0f) , m);
+            Verts[i].Normal   = new Vector3(n.X, n.Y, n.Z);
         }
 
         return this;

@@ -16,7 +16,7 @@ public sealed class World: EcsSystem {
     public override void Update(float t, float dt) {
         base.Update(t, dt);
 
-        var restitutionCoeff = 0.7f;
+        var restitutionCoeff = 0.5f;
 
         foreach (var e in Program.Inst.Scene.GetEntities<CVel>()) {
 
@@ -24,11 +24,19 @@ public sealed class World: EcsSystem {
             var vel = e.GetComponent<CVel>();
 
             if (!e.HasComponent<CIKIgnore>()) {
-                vel.Vel += new Vector3(-0.05f, 0.0f, 0.001f)*dt;
+                if (pos.Pos.Y > 0.3f) {
+                    vel.Vel += new Vector3(-0.05f, 0.0f, 0.001f)*dt;
+                }
+                else {
+                    var r = (Vector3.Zero - pos.Pos) * new Vector3(1.0f, 0.0f, 1.0f);
+                    r.Normalize();
+                    vel.Vel += 0.02f*r*dt;
+                }
             }
 
             vel.Vel += dt*Gravity;
             vel.Vel -= 0.5f*vel.Vel*dt;
+
 
             pos.Pos += dt*vel.Vel;
             //System.Console.WriteLine(pos.Pos);
@@ -107,15 +115,9 @@ public sealed class World: EcsSystem {
                         continue;
                     }
 
-                    // TODO: Restitution is missing here.
-                    // TODO: There is probably some way around this double-inversion of the masses, but I'm
-                    //       too lazy to figure it out until it becomes a problem!
-                    var m1 = 1.0f;//((float)Abs(s1.InvMass) > 0.0001f) ? 1.0f/s1.InvMass : 0.0f;
-                    var m2 = 1.0f;//((float)Abs(s2.InvMass) > 0.0001f) ? 1.0f/s2.InvMass : 0.0f;
-                    var im = 1.0f/(m1 + m2);
-                    var p  = (2.0f*(i2 - i1))*im;
+                    var p  = (2.0f*(i2 - i1))*0.5f;
 
-                    d = (minDist - d)*im; // Mass adjusted penetration distance
+                    d = (minDist - d)*0.5f; // Mass adjusted penetration distance
 
                     p1.Pos += n*d*1.0f;
                     vel.Vel += n*p*1.0f;

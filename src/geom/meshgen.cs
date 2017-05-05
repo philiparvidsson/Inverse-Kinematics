@@ -22,7 +22,7 @@ public static class MeshGen {
         return new Mesh(verts.ToArray(), indices.ToArray());
     }
 
-    public static Mesh Sphere(float radius, int m=16, int n=16) {
+    public static Mesh Sphere(float radius, int m=24, int n=24) {
         // http://wiki.unity3d.com/index.php/ProceduralPrimitives
 
         var r = radius;
@@ -63,8 +63,8 @@ public static class MeshGen {
 
         var idx = 0;
         for (var j = 0; j < n; j++) {
-            indices[idx++] = j + 2;
             indices[idx++] = j + 1;
+            indices[idx++] = j + 2;
             indices[idx++] = 0;
         }
 
@@ -74,11 +74,11 @@ public static class MeshGen {
                 var x = c + n + 1;
 
                 indices[idx++] = c;
+                indices[idx++] = x + 1;
                 indices[idx++] = c + 1;
-                indices[idx++] = x + 1;
                 indices[idx++] = c;
-                indices[idx++] = x + 1;
                 indices[idx++] = x;
+                indices[idx++] = x + 1;
             }
         }
 
@@ -124,7 +124,7 @@ public static class MeshGen {
         return new Mesh(verts.ToArray(), indices.ToArray());
     }
 
-    public static Mesh Disc(float radius, float height, int numSegments=8, bool flipNormals=false) {
+    public static Mesh Disc(float radius, float height, int numSegments=32, bool flipNormals=false) {
         var h = 0.5f*height;
         var r = radius;
 

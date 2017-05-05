@@ -27,6 +27,10 @@ public sealed class Program: Game {
             e.GraphicsDeviceInformation.GraphicsProfile = GraphicsProfile.HiDef;
         };
 
+
+        GfxDevMgr.PreferredBackBufferWidth = 1280;
+        GfxDevMgr.PreferredBackBufferHeight = 720;
+
         mScenes.Push(scene);
 
         IsMouseVisible = true;

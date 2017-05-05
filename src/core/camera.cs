@@ -10,10 +10,7 @@ public class Camera {
                                             farPlaneDistance  : 100.0f);
 
     public Vector3 Pos { get; set; }
-
-    public float Pitch { get; set; }
-
-    public float Yaw { get; set; }
+    public Vector3 Target { get; set; }
 
 }
 
