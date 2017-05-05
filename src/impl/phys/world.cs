@@ -1,6 +1,9 @@
 namespace InverseKinematics.Impl.Phys {
 
+using System;
+
 using Core;
+using Impl.Phys;
 
 using Microsoft.Xna.Framework;
 
@@ -13,15 +16,22 @@ public sealed class World: EcsSystem {
     public override void Update(float t, float dt) {
         base.Update(t, dt);
 
+        var restitutionCoeff = 0.7f;
+
         foreach (var e in Program.Inst.Scene.GetEntities<CVel>()) {
 
             var pos = e.GetComponent<CPos>();
             var vel = e.GetComponent<CVel>();
 
+            if (!e.HasComponent<CIKIgnore>()) {
+                vel.Vel += new Vector3(-0.05f, 0.0f, 0.001f)*dt;
+            }
+
             vel.Vel += dt*Gravity;
+            vel.Vel -= 0.5f*vel.Vel*dt;
 
             pos.Pos += dt*vel.Vel;
-            System.Console.WriteLine(pos.Pos);
+            //System.Console.WriteLine(pos.Pos);
 
             var aabb = e.GetComponent<CAabb>();
             if (aabb != null) {
@@ -29,32 +39,132 @@ public sealed class World: EcsSystem {
 
                 if (wsaabb.Min.X < Bounds.Min.X) {
                     pos.Pos.X = Bounds.Min.X - aabb.Aabb.Min.X;
-                    vel.Vel.X *= -1.0f;
+                    vel.Vel.X *= -restitutionCoeff;
                 }
 
                 if (wsaabb.Max.X > Bounds.Max.X) {
                     pos.Pos.X = Bounds.Max.X - aabb.Aabb.Max.X;
-                    vel.Vel.X *= -1.0f;
+                    vel.Vel.X *= -restitutionCoeff;
                 }
 
                 if (wsaabb.Min.Y < Bounds.Min.Y) {
                     pos.Pos.Y = Bounds.Min.Y - aabb.Aabb.Min.Y;
-                    vel.Vel.Y *= -1.0f;
+                    vel.Vel.Y *= -restitutionCoeff;
                 }
 
                 if (wsaabb.Max.Y > Bounds.Max.Y) {
                     pos.Pos.Y = Bounds.Max.Y - aabb.Aabb.Max.Y;
-                    vel.Vel.Y *= -1.0f;
+                    vel.Vel.Y *= -restitutionCoeff;
                 }
 
                 if (wsaabb.Min.Z < Bounds.Min.Z) {
                     pos.Pos.Z = Bounds.Min.Z - aabb.Aabb.Min.Z;
-                    vel.Vel.Z *= -1.0f;
+                    vel.Vel.Z *= -restitutionCoeff;
                 }
 
                 if (wsaabb.Max.Z > Bounds.Max.Z) {
                     pos.Pos.Z = Bounds.Max.Z - aabb.Aabb.Max.Z;
-                    vel.Vel.Z *= -1.0f;
+                    vel.Vel.Z *= -restitutionCoeff;
+                }
+            }
+
+
+            var ball1 = e.GetComponent<CBall>();
+
+            if (ball1 != null) {
+                foreach (var e2 in Program.Inst.Scene.GetEntities<CBall>()) {
+                    if (e2.ID <= e.ID) {
+                        continue;
+                    }
+
+                    var ball2 = e2.GetComponent<CBall>();
+                    var p1 = pos;
+                    var p2 = e2.GetComponent<CPos>();
+                    var vel2 = e2.GetComponent<CVel>();
+
+                    if (vel2 == null) {
+                        continue;
+                    }
+
+                    var minDist = ball1.Radius + ball2.Radius;
+
+                    var n = p1.Pos - p2.Pos;
+
+                    if (n.LengthSquared() >= minDist*minDist) {
+                        // Not colliding.
+                        continue;
+                    }
+
+                    var d = n.Length();
+                    n.Normalize();
+
+                    var i1 = Vector3.Dot(vel.Vel, n);
+                    var i2 = Vector3.Dot(vel2.Vel, n);
+
+                    if (i1 > 0.0f && i2 < 0.0f) {
+                        // Moving away from each other, so don't bother with collision.
+                        // TODO: We could normalize n after this check, for better performance.
+                        continue;
+                    }
+
+                    // TODO: Restitution is missing here.
+                    // TODO: There is probably some way around this double-inversion of the masses, but I'm
+                    //       too lazy to figure it out until it becomes a problem!
+                    var m1 = 1.0f;//((float)Abs(s1.InvMass) > 0.0001f) ? 1.0f/s1.InvMass : 0.0f;
+                    var m2 = 1.0f;//((float)Abs(s2.InvMass) > 0.0001f) ? 1.0f/s2.InvMass : 0.0f;
+                    var im = 1.0f/(m1 + m2);
+                    var p  = (2.0f*(i2 - i1))*im;
+
+                    d = (minDist - d)*im; // Mass adjusted penetration distance
+
+                    p1.Pos += n*d*1.0f;
+                    vel.Vel += n*p*1.0f;
+
+                    p2.Pos -= n*d*1.0f;
+                    vel2.Vel -= n*p*1.0f;
+
+                    var c = 0.5f*(p1.Pos + p2.Pos);
+
+
+                }
+
+                foreach (var e2 in Program.Inst.Scene.GetEntities<CAabb>()) {
+                    if (e2.ID == e.ID) {
+                        continue;
+                    }
+
+                    var aabb2 = e2.GetComponent<CAabb>();
+                    if (aabb2 != null) {
+                        var p1 = pos.Pos;//e2.GetComponent<CPos>()?.Pos ?? Vector3.Zero;
+                        var p2 = p1;
+
+                        p2.X = Math.Min(aabb2.Aabb.Max.X, Math.Max(p2.X, aabb2.Aabb.Min.X));
+                        p2.Y = Math.Min(aabb2.Aabb.Max.Y, Math.Max(p2.Y, aabb2.Aabb.Min.Y));
+                        p2.Z = Math.Min(aabb2.Aabb.Max.Z, Math.Max(p2.Z, aabb2.Aabb.Min.Z));
+
+                        //System.Console.WriteLine(p2);
+
+                        var d = p2 - p1;
+                        var r2 = d.LengthSquared();
+
+                        var minR2 = ball1.Radius*ball1.Radius;
+                        //System.Console.WriteLine(p2);
+
+                        if (r2 >= minR2) {
+                            continue;
+                        }
+
+                        // coll normal
+                        d.Normalize();
+
+                        if (Vector3.Dot(vel.Vel, d) < 0.0f) {
+                            // moving away
+                            continue;
+                        }
+
+                        vel.Vel += d * Vector3.Dot(d, Vector3.Reflect(vel.Vel, d)) * (1.0f + restitutionCoeff);
+                        pos.Pos -= d * ((float)Math.Sqrt(minR2) - (float)Math.Sqrt(r2));
+                    }
                 }
             }
         }

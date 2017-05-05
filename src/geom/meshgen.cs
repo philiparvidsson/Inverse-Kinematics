@@ -22,6 +22,75 @@ public static class MeshGen {
         return new Mesh(verts.ToArray(), indices.ToArray());
     }
 
+    public static Mesh Sphere(float radius, int m=16, int n=16) {
+        // http://wiki.unity3d.com/index.php/ProceduralPrimitives
+
+        var r = radius;
+
+        var verts = new VertexPositionColorNormal[(m+1) * (n+2)];
+
+        verts[0] = new VertexPositionColorNormal{ Position = r*Vector3.Up };
+
+        for (var i = 0; i < m; i++) {
+            var a = (float)Math.PI * (float)(i+1)/(m+1);
+            var cosa = (float)Math.Cos(a);
+            var sina = (float)Math.Sin(a);
+
+            for (var j = 0; j <= n; j++) {
+                var b = 2.0f*(float)Math.PI * (float)(j == n ? 0 : j) / n;
+                var cosb = (float)Math.Cos(b);
+                var sinb = (float)Math.Sin(b);
+
+                var pos = new Vector3(sina * cosb, cosa, sina * sinb) * r;
+                verts[j + i * (n+1) + 1] = new VertexPositionColorNormal {
+                    Position = pos,
+                };
+            }
+        }
+
+        verts[verts.Length - 1] = new VertexPositionColorNormal{ Position = r*Vector3.Down };
+
+        for (var i = 0; i < verts.Length; i++) {
+            var norm = verts[i].Position;
+            norm.Normalize();
+            verts[i].Normal = norm;
+        }
+
+        var numTris = 2*verts.Length;
+        var numIndices = 3*numTris;
+
+        var indices = new int[numIndices];
+
+        var idx = 0;
+        for (var j = 0; j < n; j++) {
+            indices[idx++] = j + 2;
+            indices[idx++] = j + 1;
+            indices[idx++] = 0;
+        }
+
+        for (var i = 0; i < m - 1; i++) {
+            for (var j = 0; j < n; j++) {
+                var c = j + i * (n+1) + 1;
+                var x = c + n + 1;
+
+                indices[idx++] = c;
+                indices[idx++] = c + 1;
+                indices[idx++] = x + 1;
+                indices[idx++] = c;
+                indices[idx++] = x + 1;
+                indices[idx++] = x;
+            }
+        }
+
+        for (var j = 0; j < n; j++) {
+            indices[idx++] = verts.Length - 1;
+            indices[idx++] = verts.Length - (j + 2) - 1;
+            indices[idx++] = verts.Length - (j + 1) - 1;
+        }
+
+        return new Mesh(verts, indices);
+    }
+
     public static Mesh Bone(float thickness, float length, float ratio=0.15f) {
         var t = 0.5f*thickness;
         var l = length;

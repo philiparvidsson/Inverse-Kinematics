@@ -40,6 +40,8 @@ MONOGAME_PATH := $(MONOGAME_PATH)/Assemblies/DesktopGL
 .PHONY: all clean libs run
 .PHONY: $(BINDIR)/$(TARGET) compile
 
+all: compile libs
+
 $(BINDIR)/$(TARGET):
 	mkdir -p $(BINDIR)
 	$(COMPILER) $(FLAGS)                        \
@@ -47,9 +49,6 @@ $(BINDIR)/$(TARGET):
 	              $(addprefix -r:, $(LIBS))       \
 	              -out:$(BINDIR)/$(TARGET)      \
 	              -recurse:$(SRCDIR)/*.cs
-
-
-all: compile libs
 
 clean:
 	rm -fr $(BINDIR) $(CONTENTFILE) doc

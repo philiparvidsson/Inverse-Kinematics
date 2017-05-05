@@ -38,6 +38,14 @@ public sealed class Mesh {
         return GpuMesh.FromMesh(gfxDevice, this);
     }
 
+    public Mesh FlipNormals() {
+        for (var i = 0; i < Verts.Length; i++) {
+            Verts[i].Normal *= -1.0f;
+        }
+
+        return this;
+    }
+
     public Mesh Color(Color color) {
         for (var i = 0; i < Verts.Length; i++) {
             Verts[i].Color = color;
