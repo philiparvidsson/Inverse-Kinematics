@@ -190,13 +190,16 @@ public sealed class IKDemo: Scene {
     CPos cp;
     public override void Init() {
         IKSolver ikSolver;
+        World world;
 
         AddSystems(new FpsCounter(updatesPerSec: 10),
-                   new World(),
+           world = new World(),
         ikSolver = new IKSolver(),
                    new Renderer());
 
         base.Init();
+
+        world.Bounds = new BoundingBox(-5.0f*new Vector3(1.0f, 0.0f, 1.0f), 5.0f*Vector3.One);
 
         ikbc = ikSolver.CreateBoneChain();
 
@@ -211,13 +214,26 @@ public sealed class IKDemo: Scene {
         ikbc.Target = new Vector3(-0.2f, 0.0f, 0.5f);
 
         var g = Program.Inst.GraphicsDevice;
+        var box = MeshGen.Box(0.1f, 0.1f, 0.1f).Color(Color.Black);
         AddEntity(new EcsEntity(
                                 new CMesh {
-                                    Mesh = MeshGen.Box(0.1f, 0.1f, 0.1f).Color(Color.Black).Gpu(g)
+                                    Mesh = box.Gpu(g)
                                 },
+                                new CAabb{ Aabb=box.Aabb() },
+                                new CVel{},
                                 cp = new CPos {
                                     Pos = ikbc.Target
                                 }));
+
+        var floorTransform = Matrix.CreateRotationX(MathHelper.ToRadians(-90.0f))
+                           * Matrix.CreateScale(10.0f*Vector3.One);
+        var floor = MeshGen.Quad().Transform(floorTransform).Color(Color.White);
+        AddMeshEntity(floor);
+    }
+
+    private void AddMeshEntity(Mesh mesh) {
+        var g = Program.Inst.GraphicsDevice;
+        AddEntity(new EcsEntity(new CMesh { Mesh = mesh.Gpu(g) }));
     }
 
     public override void Draw(float t, float dt) {
@@ -242,8 +258,9 @@ public sealed class IKDemo: Scene {
         if (kb.IsKeyDown(Keys.Up)) {
             d += Vector3.Forward;
         }
-        ikbc.Target += d*dt;
-        cp.Pos = ikbc.Target;
+
+        cp.Pos += d*dt;
+        ikbc.Target = cp.Pos;
 
         base.Draw(t, dt);
     }

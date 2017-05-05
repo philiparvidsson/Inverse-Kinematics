@@ -46,6 +46,14 @@ public sealed class Mesh {
         return this;
     }
 
+    public Mesh Transform(Matrix m) {
+        for (var i = 0; i < Verts.Length; i++) {
+            Verts[i].Position = Vector3.Transform(Verts[i].Position, m);
+        }
+
+        return this;
+    }
+
     public Mesh Translate(Vector3 d) {
         for (var i = 0; i < Verts.Length; i++) {
             Verts[i].Position += d;

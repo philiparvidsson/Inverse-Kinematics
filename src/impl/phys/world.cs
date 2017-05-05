@@ -14,11 +14,14 @@ public sealed class World: EcsSystem {
         base.Update(t, dt);
 
         foreach (var e in Program.Inst.Scene.GetEntities<CVel>()) {
+
             var pos = e.GetComponent<CPos>();
             var vel = e.GetComponent<CVel>();
 
             vel.Vel += dt*Gravity;
+
             pos.Pos += dt*vel.Vel;
+            System.Console.WriteLine(pos.Pos);
 
             var aabb = e.GetComponent<CAabb>();
             if (aabb != null) {
