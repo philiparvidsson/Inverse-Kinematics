@@ -36,7 +36,7 @@ public sealed class Renderer: EcsSystem {
             g.SetVertexBuffer(mesh.Mesh.Vbo);
             g.Indices = mesh.Mesh.Ibo;
 
-            DefEffect.View = Matrix.CreateLookAt(new Vector3(0.5f, 1.0f*0.5f, 1.0f), Vector3.Zero, Vector3.Up);
+            DefEffect.View = Matrix.CreateLookAt(new Vector3(0.5f, 2.0f*0.5f, 1.0f), Vector3.Zero, Vector3.Up);
             DefEffect.World = Matrix.Identity;
             DefEffect.Projection = Cam.Proj;
 

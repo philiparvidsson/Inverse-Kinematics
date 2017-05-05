@@ -23,12 +23,15 @@ public class IKBoneChain {
 
     public void StepSolve(float dt) {
         for (var i = mBones.Count - 1; i >= 0; i--) {
-            var t  = Target;
             var p0 = (i > 0) ? mBones[i - 1].FinalPos() : mBones[i].Pos;
             var p1 = mBones[i].FinalPos();
+            var t  = Target;
 
             var a = p1 - p0;
             var b = t  - p0;
+
+            var bLength = b.Length();
+            var aLength = a.Length();
 
             a.Normalize();
             b.Normalize();
@@ -36,9 +39,26 @@ public class IKBoneChain {
             var theta = (float)Math.Acos(Vector3.Dot(a, b));
             var axis  = Vector3.Cross(a, b);
 
-            mBones[i].Rot = Quaternion.Slerp(
+
+
+            //Console.WriteLine(axis + ", " + theta);
+
+            if (bLength < aLength) {
+                mBones[i].CompAngle += (MathHelper.ToRadians(10.0f) + theta) * ((aLength/bLength) - 1.0f);
+            }
+
+            mBones[i].CompAngle -= 20.0f*mBones[i].CompAngle*dt;
+
+
+            var r = 0.0f;
+            var qq = 1;
+            for (var j = i; j < mBones.Count; j++) {
+                r += mBones[j].CompAngle*qq;
+                qq++;
+            }
+            mBones[i].Rot = Quaternion.Lerp(
                                 mBones[i].Rot,
-                                Quaternion.CreateFromAxisAngle(axis, (i+1)*0.4f),
+                                Quaternion.CreateFromAxisAngle(axis, (i+1)*0.4f-r),
                                 dt);
         }
     }
@@ -70,7 +90,8 @@ public class IKBoneChain {
         var p = Program.Inst;
         var g = p.GraphicsDevice;
 
-        var mesh = MeshGen.Bone(thickness, length)
+        var mesh = MeshGen.Box(thickness, length, thickness)
+                          .Translate(0.5f*length*Vector3.Up)
                           .Color(color);
 
         p.Scene.AddEntity(new EcsEntity(new CMesh   { Mesh = mesh.Gpu(g) },
@@ -85,6 +106,7 @@ public class IKBoneChain {
 }
 
 public class IKBone {
+    public float CompAngle { get; set; }
     public IKBone Parent { get; set; }
 
     public float Length { get; set; }
@@ -178,11 +200,13 @@ public sealed class IKDemo: Scene {
 
         ikbc = ikSolver.CreateBoneChain();
 
-        ikbc.AddBone(0.3f, Color.White, Vector3.Zero);
+        ikbc.AddBone(0.3f, new Color(1.0f, 0.0f, 0.0f), Vector3.Zero);
         for (var i = 0; i < 2; i++) {
-            ikbc.AddBone(0.3f, Color.Black);
-            ikbc.AddBone(0.3f, Color.White);
+            ikbc.AddBone(0.3f, new Color(0.0f, 1.0f, 0.0f));
+            ikbc.AddBone(0.3f, new Color(1.0f, 1.0f, 0.0f));
         }
+
+        ikbc.AddBone(0.3f, new Color(0.0f, 0.0f, 1.0f));
 
         ikbc.Target = new Vector3(-0.2f, 0.0f, 0.5f);
 
@@ -197,13 +221,28 @@ public sealed class IKDemo: Scene {
     }
 
     public override void Draw(float t, float dt) {
-        var mouse = Mouse.GetState();
+        var kb = Keyboard.GetState();
 
-        var z = 0.0f;
-        if (mouse.LeftButton == ButtonState.Pressed) {
-            z = mouse.Y - 300;
+        Vector3 d = Vector3.Zero;
+        if (kb.IsKeyDown(Keys.Left)) {
+            d += Vector3.Left;
         }
-        ikbc.Target += new Vector3(mouse.X-400, z, mouse.Y-300)*0.00003f;
+        if (kb.IsKeyDown(Keys.Right)) {
+            d += Vector3.Right;
+        }
+        if (kb.IsKeyDown(Keys.A)) {
+            d += Vector3.Down;
+        }
+        if (kb.IsKeyDown(Keys.Q)) {
+            d += Vector3.Up;
+        }
+        if (kb.IsKeyDown(Keys.Down)) {
+            d += Vector3.Backward;
+        }
+        if (kb.IsKeyDown(Keys.Up)) {
+            d += Vector3.Forward;
+        }
+        ikbc.Target += d*dt;
         cp.Pos = ikbc.Target;
 
         base.Draw(t, dt);
