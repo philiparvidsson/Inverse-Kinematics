@@ -1,6 +1,6 @@
 # Experimenting with Inverse Kinematics
 
-*more info to come later*
+This was an assignment for one of my courses during my studies; implementing an IK solver. I took it a few steps further and implemented some physics and a [Phong](https://en.wikipedia.org/wiki/Phong_shading)-shader.
 
 ## Video
 
