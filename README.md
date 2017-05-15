@@ -2,7 +2,6 @@
 
 This was an assignment for one of my courses during my studies; implementing an IK solver. I took it a few steps further and implemented some physics and a [Phong](https://en.wikipedia.org/wiki/Phong_shading)-shader.
 
-## Video
 I implemented a simple 3D environment with some basic physics (a simple a posteriori symplectic Euler solver with a sphere vs. axis-aligned bounding box collision solver) to demonstrate the algorithm. The video below is a recording of the demo (clone this repository to build it yourself).
 
 [![Inverse Kinematics](https://img.youtube.com/vi/1UKI7Xcm4Ow/0.jpg)](https://youtu.be/1UKI7Xcm4Ow)
