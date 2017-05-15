@@ -26,6 +26,8 @@ for i from n-1 to 0
     rotate bone j around axis (a x b) by some amount minus r
 ```
 
+Although it is based on classic IK solutions (rotating each bone towards the target iteratively), the concept of compensating angles helps it "back away" to reach nearby targets (the target is closer to the root point than the length of the sum of all bones in the chain) with relatively stable motor skills.
+
 ## Video
 
 [![Inverse Kinematics](https://img.youtube.com/vi/1UKI7Xcm4Ow/0.jpg)](https://youtu.be/1UKI7Xcm4Ow)
