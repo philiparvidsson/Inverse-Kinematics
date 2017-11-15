@@ -44,8 +44,8 @@ for i from n-1 to 0
     r ← 0
     f ← 1
     for j from i to n-1
-        r += f * compensating angle of bone j
-        f += 1
+        r ← r + f * compensating angle of bone j
+        f ← f + 1
         
     rotate bone j around axis (a x b) by some amount minus r
 ```
